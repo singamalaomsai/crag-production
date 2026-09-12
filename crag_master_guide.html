@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corrective RAG (CRAG) Production Master Blueprint</title>
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --bg-code: #090d16;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --font-mono: "Fira Code", "SFMono-Regular", Consolas, Menlo, Monaco, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.65;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid var(--border-color);
+      border-left: 6px solid var(--primary);
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 40px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 45px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-top: 25px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #cbd5e1;
+    }
+
+    ul, ol {
+      margin-bottom: 20px;
+      padding-left: 24px;
+      color: #cbd5e1;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
+    .badge-local {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .badge-web {
+      background-color: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0 30px 0;
+      background-color: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.95rem;
+    }
+
+    th {
+      background-color: #0b1324;
+      color: var(--primary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.82rem;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    pre {
+      background-color: var(--bg-code);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 15px 0 20px 0;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      color: #e2e8f0;
+    }
+
+    .code-line {
+      display: block;
+      line-height: 1.6;
+    }
+
+    .line-num {
+      color: #475569;
+      display: inline-block;
+      width: 35px;
+      user-select: none;
+    }
+
+    .comment { color: #64748b; font-style: italic; }
+    .keyword { color: #f472b6; font-weight: 600; }
+    .string { color: #a5f3fc; }
+    .fn { color: #38bdf8; }
+    .class-name { color: #facc15; }
+
+    .breakdown-box {
+      background-color: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 18px 20px;
+      margin-bottom: 25px;
+    }
+
+    .breakdown-box ul {
+      margin-bottom: 0;
+    }
+
+    .breakdown-box li {
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .breakdown-box strong {
+      color: var(--primary);
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <h1>Corrective RAG (CRAG) Production Master Blueprint</h1>
+    <p>Complete Systems Architecture, Execution Steps, Line-by-Line Codebase Analysis, and Enterprise Application Guide</p>
+  </header>
+
+  <section>
+    <h2>1. Executive Overview & Problem Statement</h2>
+    <p>
+      Standard Large Language Models (LLMs) operate in a closed-book manner where responses are generated strictly from static neural network weights frozen during training[span_0](start_span)[span_0](end_span). This creates three primary failure modes in mission-critical deployments:
+    </p>
+    <ul>
+      <li><strong>Parametric Hallucination:</strong> Models present fabricated answers with high linguistic confidence when internal knowledge is absent[span_1](start_span)[span_1](end_span).</li>
+      <li><strong>Data Staleness:</strong> Models lack access to recent data or evolving facts without costly fine-tuning[span_2](start_span)[span_2](end_span).</li>
+      <li><strong>Information Boundaries:</strong> Standard models cannot access private enterprise documents, internal wikis, or engineering manuals[span_3](start_span)[span_3](end_span).</li>
+    </ul>
+    <p>
+      Naive RAG attempts to resolve this by retrieving nearest neighbors from a vector store and injecting them into the prompt. However, when the retrieval engine retrieves noise or misses relevant chunks, standard RAG still produces hallucinations[span_4](start_span)[span_4](end_span). 
+      <strong>Corrective RAG (CRAG)</strong> inserts an autonomous evaluator node to evaluate retrieved documents prior to synthesis[span_5](start_span)[span_5](end_span). If local documents are validated, it grounds answers with verified citations; if local context is insufficient, it triggers an autonomous web search fallback[span_6](start_span)[span_6](end_span).
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>System Type</th>
+          <th>Knowledge Source</th>
+          <th>Relevance Verification</th>
+          <th>Behavior on Missing Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Parametric LLM</strong></td>
+          <td>Static pre-trained weights[span_7](start_span)[span_7](end_span)</td>
+          <td>None[span_8](start_span)[span_8](end_span)</td>
+          <td>Hallucinates plausible falsehoods[span_9](start_span)[span_9](end_span)</td>
+        </tr>
+        <tr>
+          <td><strong>Naive RAG</strong></td>
+          <td>Vector store (dense similarity)[span_10](start_span)[span_10](end_span)</td>
+          <td>None (forwards raw vector chunks)[span_11](start_span)[span_11](end_span)</td>
+          <td>Synthesizes noise or partial facts[span_12](start_span)[span_12](end_span)</td>
+        </tr>
+        <tr>
+          <td><strong>Corrective RAG</strong></td>
+          <td>Hybrid (Qdrant + BM25) + Live Web (Tavily)[span_13](start_span)[span_13](end_span)</td>
+          <td>Reflective Evaluator LLM[span_14](start_span)[span_14](end_span)</td>
+          <td>Autonomous query rewriting & live web search fallback[span_15](start_span)[span_15](end_span)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>2. End-to-End System Lifecycle & Execution Flow</h2>
+    <div class="card">
+      <ol>
+        <li><strong>Document Ingestion & Semantic Chunking:</strong> Documents or PDFs are split into sliding windows (128 words, 20-word overlap) with document IDs and token offsets[span_16](start_span)[span_16](end_span).</li>
+        <li><strong>Hybrid Multi-Index Retrieval:</strong> Submits queries in parallel to Qdrant (dense vectors) and BM25 (sparse lexical match), combined via Reciprocal Rank Fusion (RRF)[span_17](start_span)[span_17](end_span).</li>
+        <li><strong>Cross-Encoder Reranking:</strong> Evaluates top-ranked candidates with deep token-level cross-attention to filter false positives[span_18](start_span)[span_18](end_span).</li>
+        <li><strong>Reflective Self-Evaluation:</strong> An evaluator LLM grades each chunk as <code>relevant</code> or <code>irrelevant</code>[span_19](start_span)[span_19](end_span). If zero chunks pass, it flags <code>web_search_fallback = True</code>[span_20](start_span)[span_20](end_span).</li>
+        <li><strong>Autonomous Web Fallback:</strong> If flagged, Tavily executes a public crawl to retrieve real-time external articles into the document pool[span_21](start_span)[span_21](end_span).</li>
+        <li><strong>Attributed Generation:</strong> Synthesizes the final answer using verified context and appends citations like <code>[doc_id]</code> or URLs[span_22](start_span)[span_22](end_span).</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Complete Codebase & Exhaustive Line-by-Line Breakdown</h2>
+
+    <h3>3.1 Semantic Chunking Engine (<code>app/retrieval/chunking.py</code>)</h3>
+    <pre><code><span class="code-line"><span class="line-num">01</span><span class="keyword">class</span> <span class="class-name">MetadataChunker</span>:</span>
+<span class="code-line"><span class="line-num">02</span>    <span class="keyword">def</span> <span class="fn">_init_</span>(self, chunk_size: <span class="keyword">int</span> = <span class="string">128</span>, chunk_overlap: <span class="keyword">int</span> = <span class="string">20</span>):</span>
+<span class="code-line"><span class="line-num">03</span>        self.chunk_size = chunk_size</span>
+<span class="code-line"><span class="line-num">04</span>        self.chunk_overlap = chunk_overlap</span>
+<span class="code-line"><span class="line-num">05</span></span>
+<span class="code-line"><span class="line-num">06</span>    <span class="keyword">def</span> <span class="fn">split_text</span>(self, text: <span class="keyword">str</span>, doc_id: <span class="keyword">str</span>):</span>
+<span class="code-line"><span class="line-num">07</span>        words = text.split()</span>
+<span class="code-line"><span class="line-num">08</span>        chunks, start = [], <span class="string">0</span></span>
+<span class="code-line"><span class="line-num">09</span>        <span class="keyword">while</span> start &lt; len(words):</span>
+<span class="code-line"><span class="line-num">10</span>            end = start + self.chunk_size</span>
+<span class="code-line"><span class="line-num">11</span>            chunk_text = <span class="string">" "</span>.join(words[start:end])</span>
+<span class="code-line"><span class="line-num">12</span>            chunks.append({</span>
+<span class="code-line"><span class="line-num">13</span>                <span class="string">"doc_id"</span>: doc_id,</span>
+<span class="code-line"><span class="line-num">14</span>                <span class="string">"content"</span>: chunk_text,</span>
+<span class="code-line"><span class="line-num">15</span>                <span class="string">"metadata"</span>: {</span>
+<span class="code-line"><span class="line-num">16</span>                    <span class="string">"doc_id"</span>: doc_id,</span>
+<span class="code-line"><span class="line-num">17</span>                    <span class="string">"token_start"</span>: start,</span>
+<span class="code-line"><span class="line-num">18</span>                    <span class="string">"token_end"</span>: min(end, len(words)),</span>
+<span class="code-line"><span class="line-num">19</span>                },</span>
+<span class="code-line"><span class="line-num">20</span>            })</span>
+<span class="code-line"><span class="line-num">21</span>            start += self.chunk_size - self.chunk_overlap</span>
+<span class="code-line"><span class="line-num">22</span>        <span class="keyword">return</span> chunks</span></code></pre>
+
+    <div class="breakdown-box">
+      <ul>
+        <li><strong>Line 01:</strong> Declares <code>MetadataChunker</code> to manage sliding-window document segmentation[span_23](start_span)[span_23](end_span).</li>
+        <li><strong>Lines 02–04:</strong> Configures window parameters[span_24](start_span)[span_24](end_span). <code>chunk_size=128</code> prevents embedding dilution[span_25](start_span)[span_25](end_span), while <code>chunk_overlap=20</code> preserves sentence continuity across chunk splits[span_26](start_span)[span_26](end_span).</li>
+        <li><strong>Lines 06–07:</strong> <code>split_text</code> accepts the raw document string and a <code>doc_id</code>, tokenizing words via whitespace boundaries[span_27](start_span)[span_27](end_span).</li>
+        <li><strong>Lines 08–10:</strong> Tracks pointers through the token array, calculating the window endpoint as <code>start + chunk_size</code>[span_28](start_span)[span_28](end_span).</li>
+        <li><strong>Line 11:</strong> Reconstructs the word segment into a coherent text passage[span_29](start_span)[span_29](end_span).</li>
+        <li><strong>Lines 12–20:</strong> Builds a structured chunk object containing <code>doc_id</code>, text <code>content</code>, and boundary offsets (<code>token_start</code>, <code>token_end</code>) for citation tracking[span_30](start_span)[span_30](end_span).</li>
+        <li><strong>Line 21:</strong> Advances the window pointer by 108 tokens (<code>chunk_size - chunk_overlap</code>) to implement the overlap[span_31](start_span)[span_31](end_span).</li>
+        <li><strong>Line 22:</strong> Returns the list of chunks ready for hybrid indexing[span_32](start_span)[span_32](end_span).</li>
+      </ul>
+    </div>
+
+    <h3>3.2 Central Graph State Schema (<code>app/graph/state.py</code>)</h3>
+    <pre><code><span class="code-line"><span class="line-num">01</span><span class="keyword">from</span> typing <span class="keyword">import</span> TypedDict, List, Dict, Any</span>
+<span class="code-line"><span class="line-num">02</span></span>
+<span class="code-line"><span class="line-num">03</span><span class="keyword">class</span> <span class="class-name">GraphState</span>(TypedDict):</span>
+<span class="code-line"><span class="line-num">04</span>    question: <span class="keyword">str</span></span>
+<span class="code-line"><span class="line-num">05</span>    documents: List[Dict[<span class="keyword">str</span>, Any]]</span>
+<span class="code-line"><span class="line-num">06</span>    web_search_fallback: <span class="keyword">bool</span></span>
+<span class="code-line"><span class="line-num">07</span>    generation: <span class="keyword">str</span></span>
+<span class="code-line"><span class="line-num">08</span>    sources: List[Dict[<span class="keyword">str</span>, Any]]</span></code></pre>
+
+    <div class="breakdown-box">
+      <ul>
+        <li><strong>Line 01:</strong> Imports typing primitives to enforce schema consistency across nodes.</li>
+        <li><strong>Line 03:</strong> Declares <code>GraphState</code>, the centralized state object passed through the LangGraph pipeline[span_33](start_span)[span_33](end_span).</li>
+        <li><strong>Line 04:</strong> <code>question</code>: Stores the user query string[span_34](start_span)[span_34](end_span).</li>
+        <li><strong>Line 05:</strong> <code>documents</code>: Stores the active pool of candidate passages retrieved from internal storage or external search[span_35](start_span)[span_35](end_span).</li>
+        <li><strong>Line 06:</strong> <code>web_search_fallback</code>: Routing flag; indicates whether local retrieval was sufficient[span_36](start_span)[span_36](end_span).</li>
+        <li><strong>Line 07:</strong> <code>generation</code>: Stores the synthesized, citation-grounded response text[span_37](start_span)[span_37](end_span).</li>
+        <li><strong>Line 08:</strong> <code>sources</code>: Stores references for internal documents and external URLs[span_38](start_span)[span_38](end_span).</li>
+      </ul>
+    </div>
+
+    <h3>3.3 Decision Nodes & Self-Correction (<code>app/graph/nodes.py</code>)</h3>
+    <pre><code><span class="code-line"><span class="line-num">01</span><span class="keyword">import</span> os</span>
+<span class="code-line"><span class="line-num">02</span><span class="keyword">from</span> typing <span class="keyword">import</span> Dict, Any</span>
+<span class="code-line"><span class="line-num">03</span><span class="keyword">from</span> tavily <span class="keyword">import</span> TavilyClient</span>
+<span class="code-line"><span class="line-num">04</span></span>
+<span class="code-line"><span class="line-num">05</span><span class="keyword">class</span> <span class="class-name">CRAGNodes</span>:</span>
+<span class="code-line"><span class="line-num">06</span>    <span class="keyword">def</span> <span class="fn">_init_</span>(self, hybrid_retriever, llm_evaluator, llm_generator):</span>
+<span class="code-line"><span class="line-num">07</span>        self.retriever = hybrid_retriever</span>
+<span class="code-line"><span class="line-num">08</span>        self.evaluator = llm_evaluator</span>
+<span class="code-line"><span class="line-num">09</span>        self.generator = llm_generator</span>
+<span class="code-line"><span class="line-num">10</span>        self.tavily = TavilyClient(api_key=os.getenv(<span class="string">"TAVILY_API_KEY"</span>))</span>
+<span class="code-line"><span class="line-num">11</span></span>
+<span class="code-line"><span class="line-num">12</span>    <span class="keyword">def</span> <span class="fn">retrieve</span>(self, state: Dict[<span class="keyword">str</span>, Any]) -&gt; Dict[<span class="keyword">str</span>, Any]:</span>
+<span class="code-line"><span class="line-num">13</span>        docs = self.retriever.search(state[<span class="string">"question"</span>])</span>
+<span class="code-line"><span class="line-num">14</span>        <span class="keyword">return</span> {<span class="string">"documents"</span>: docs, <span class="string">"question"</span>: state[<span class="string">"question"</span>]}</span>
+<span class="code-line"><span class="line-num">15</span></span>
+<span class="code-line"><span class="line-num">16</span>    <span class="keyword">def</span> <span class="fn">grade_documents</span>(self, state: Dict[<span class="keyword">str</span>, Any]) -&gt; Dict[<span class="keyword">str</span>, Any]:</span>
+<span class="code-line"><span class="line-num">17</span>        question = state[<span class="string">"question"</span>]</span>
+<span class="code-line"><span class="line-num">18</span>        docs = state[<span class="string">"documents"</span>]</span>
+<span class="code-line"><span class="line-num">19</span>        graded_docs = []</span>
+<span class="code-line"><span class="line-num">20</span>        needs_web = <span class="keyword">False</span></span>
+<span class="code-line"><span class="line-num">21</span>        <span class="keyword">for</span> d <span class="keyword">in</span> docs:</span>
+<span class="code-line"><span class="line-num">22</span>            score = self.evaluator.evaluate(question=question, context=d[<span class="string">"content"</span>])</span>
+<span class="code-line"><span class="line-num">23</span>            <span class="keyword">if</span> score == <span class="string">"relevant"</span>:</span>
+<span class="code-line"><span class="line-num">24</span>                graded_docs.append(d)</span>
+<span class="code-line"><span class="line-num">25</span>        <span class="keyword">if</span> len(graded_docs) == <span class="string">0</span>:</span>
+<span class="code-line"><span class="line-num">26</span>            needs_web = <span class="keyword">True</span></span>
+<span class="code-line"><span class="line-num">27</span>        <span class="keyword">return</span> {<span class="string">"documents"</span>: graded_docs, <span class="string">"web_search_fallback"</span>: needs_web}</span>
+<span class="code-line"><span class="line-num">28</span></span>
+<span class="code-line"><span class="line-num">29</span>    <span class="keyword">def</span> <span class="fn">web_search</span>(self, state: Dict[<span class="keyword">str</span>, Any]) -&gt; Dict[<span class="keyword">str</span>, Any]:</span>
+<span class="code-line"><span class="line-num">30</span>        question = state[<span class="string">"question"</span>]</span>
+<span class="code-line"><span class="line-num">31</span>        results = self.tavily.search(query=question, max_results=<span class="string">3</span>)</span>
+<span class="code-line"><span class="line-num">32</span>        web_docs = []</span>
+<span class="code-line"><span class="line-num">33</span>        <span class="keyword">for</span> r <span class="keyword">in</span> results.get(<span class="string">"results"</span>, []):</span>
+<span class="code-line"><span class="line-num">34</span>            web_docs.append({</span>
+<span class="code-line"><span class="line-num">35</span>                <span class="string">"doc_id"</span>: r[<span class="string">"url"</span>],</span>
+<span class="code-line"><span class="line-num">36</span>                <span class="string">"content"</span>: r[<span class="string">"content"</span>],</span>
+<span class="code-line"><span class="line-num">37</span>                <span class="string">"metadata"</span>: {<span class="string">"title"</span>: r.get(<span class="string">"title"</span>, r[<span class="string">"url"</span>])}</span>
+<span class="code-line"><span class="line-num">38</span>            })</span>
+<span class="code-line"><span class="line-num">39</span>        <span class="keyword">return</span> {<span class="string">"documents"</span>: state[<span class="string">"documents"</span>] + web_docs}</span>
+<span class="code-line"><span class="line-num">40</span></span>
+<span class="code-line"><span class="line-num">41</span>    <span class="keyword">def</span> <span class="fn">generate</span>(self, state: Dict[<span class="keyword">str</span>, Any]) -&gt; Dict[<span class="keyword">str</span>, Any]:</span>
+<span class="code-line"><span class="line-num">42</span>        answer = self.generator.generate(state[<span class="string">"question"</span>], state[<span class="string">"documents"</span>])</span>
+<span class="code-line"><span class="line-num">43</span>        sources = [{<span class="string">"doc_id"</span>: d[<span class="string">"doc_id"</span>], <span class="string">"metadata"</span>: d.get(<span class="string">"metadata"</span>, {})} <span class="keyword">for</span> d <span class="keyword">in</span> state[<span class="string">"documents"</span>]]</span>
+<span class="code-line"><span class="line-num">44</span>        <span class="keyword">return</span> {<span class="string">"generation"</span>: answer, <span class="string">"sources"</span>: sources}</span></code></pre>
+
+    <div class="breakdown-box">
+      <ul>
+        <li><strong>Lines 01–10:</strong> Imports requirements and initializes the Tavily API client with injected components for retrieval, evaluation, and generation[span_39](start_span)[span_39](end_span).</li>
+        <li><strong>Lines 12–14:</strong> <code>retrieve</code>: Queries the local hybrid store (Qdrant + BM25) and places candidates into <code>documents</code>[span_40](start_span)[span_40](end_span).</li>
+        <li><strong>Lines 16–20:</strong> <code>grade_documents</code>: Initializes evaluation tracking for the candidate passages[span_41](start_span)[span_41](end_span).</li>
+        <li><strong>Lines 21–24:</strong> Iterates through candidate passages, using the evaluator LLM to classify them as <code>relevant</code> or <code>irrelevant</code>[span_42](start_span)[span_42](end_span).</li>
+        <li><strong>Lines 25–26:</strong> Sets <code>needs_web = True</code> when zero chunks satisfy the grading criteria[span_43](start_span)[span_43](end_span).</li>
+        <li><strong>Line 27:</strong> Updates the active state with surviving chunks and the fallback flag[span_44](start_span)[span_44](end_span).</li>
+        <li><strong>Lines 29–39:</strong> <code>web_search</code>: Uses Tavily to query the web for the top 3 authoritative sources, mapping them to standard chunk dictionaries[span_45](start_span)[span_45](end_span).</li>
+        <li><strong>Lines 41–44:</strong> <code>generate</code>: Synthesizes the response based on the context pool and collects source references[span_46](start_span)[span_46](end_span).</li>
+      </ul>
+    </div>
+
+    <h3>3.4 Graph Routing & Workflow (<code>app/graph/workflow.py</code>)</h3>
+    <pre><code><span class="code-line"><span class="line-num">01</span><span class="keyword">from</span> langgraph.graph <span class="keyword">import</span> StateGraph, END</span>
+<span class="code-line"><span class="line-num">02</span><span class="keyword">from</span> app.graph.state <span class="keyword">import</span> GraphState</span>
+<span class="code-line"><span class="line-num">03</span></span>
+<span class="code-line"><span class="line-num">04</span><span class="keyword">def</span> <span class="fn">decide_to_generate</span>(state: GraphState) -&gt; <span class="keyword">str</span>:</span>
+<span class="code-line"><span class="line-num">05</span>    <span class="keyword">if</span> state[<span class="string">"web_search_fallback"</span>]:</span>
+<span class="code-line"><span class="line-num">06</span>        <span class="keyword">return</span> <span class="string">"web_search"</span></span>
+<span class="code-line"><span class="line-num">07</span>    <span class="keyword">return</span> <span class="string">"generate"</span></span>
+<span class="code-line"><span class="line-num">08</span></span>
+<span class="code-line"><span class="line-num">09</span><span class="keyword">class</span> <span class="class-name">CRAGPipeline</span>:</span>
+<span class="code-line"><span class="line-num">10</span>    <span class="keyword">def</span> <span class="fn">_init_</span>(self, nodes):</span>
+<span class="code-line"><span class="line-num">11</span>        workflow = StateGraph(GraphState)</span>
+<span class="code-line"><span class="line-num">12</span>        workflow.add_node(<span class="string">"retrieve"</span>, nodes.retrieve)</span>
+<span class="code-line"><span class="line-num">13</span>        workflow.add_node(<span class="string">"grade_documents"</span>, nodes.grade_documents)</span>
+<span class="code-line"><span class="line-num">14</span>        workflow.add_node(<span class="string">"web_search"</span>, nodes.web_search)</span>
+<span class="code-line"><span class="line-num">15</span>        workflow.add_node(<span class="string">"generate"</span>, nodes.generate)</span>
+<span class="code-line"><span class="line-num">16</span></span>
+<span class="code-line"><span class="line-num">17</span>        workflow.set_entry_point(<span class="string">"retrieve"</span>)</span>
+<span class="code-line"><span class="line-num">18</span>        workflow.add_edge(<span class="string">"retrieve"</span>, <span class="string">"grade_documents"</span>)</span>
+<span class="code-line"><span class="line-num">19</span>        workflow.add_conditional_edges(<span class="string">"grade_documents"</span>, decide_to_generate, {</span>
+<span class="code-line"><span class="line-num">20</span>            <span class="string">"web_search"</span>: <span class="string">"web_search"</span>,</span>
+<span class="code-line"><span class="line-num">21</span>            <span class="string">"generate"</span>: <span class="string">"generate"</span></span>
+<span class="code-line"><span class="line-num">22</span>        })</span>
+<span class="code-line"><span class="line-num">23</span>        workflow.add_edge(<span class="string">"web_search"</span>, <span class="string">"generate"</span>)</span>
+<span class="code-line"><span class="line-num">24</span>        workflow.add_edge(<span class="string">"generate"</span>, END)</span>
+<span class="code-line"><span class="line-num">25</span>        self.app = workflow.compile()</span>
+<span class="code-line"><span class="line-num">26</span></span>
+<span class="code-line"><span class="line-num">27</span>    <span class="keyword">def</span> <span class="fn">run</span>(self, question: <span class="keyword">str</span>):</span>
+<span class="code-line"><span class="line-num">28</span>        <span class="keyword">return</span> self.app.invoke({</span>
+<span class="code-line"><span class="line-num">29</span>            <span class="string">"question"</span>: question, </span>
+<span class="code-line"><span class="line-num">30</span>            <span class="string">"documents"</span>: [], </span>
+<span class="code-line"><span class="line-num">31</span>            <span class="string">"web_search_fallback"</span>: <span class="keyword">False</span>,</span>
+<span class="code-line"><span class="line-num">32</span>            <span class="string">"generation"</span>: <span class="string">""</span>,</span>
+<span class="code-line"><span class="line-num">33</span>            <span class="string">"sources"</span>: []</span>
+<span class="code-line"><span class="line-num">34</span>        })</span></code></pre>
+
+    <div class="breakdown-box">
+      <ul>
+        <li><strong>Lines 04–07:</strong> <code>decide_to_generate</code>: Routes execution to <code>web_search</code> if fallback was flagged, or directly to <code>generate</code> otherwise[span_47](start_span)[span_47](end_span).</li>
+        <li><strong>Lines 11–15:</strong> Instantiates <code>StateGraph(GraphState)</code> and registers each step as a named node[span_48](start_span)[span_48](end_span).</li>
+        <li><strong>Lines 17–18:</strong> Configures <code>retrieve</code> as the entry point and routes its output to <code>grade_documents</code>[span_49](start_span)[span_49](end_span).</li>
+        <li><strong>Lines 19–22:</strong> Sets conditional branching out of <code>grade_documents</code> based on <code>decide_to_generate</code>[span_50](start_span)[span_50](end_span).</li>
+        <li><strong>Lines 23–25:</strong> Connects <code>web_search</code> to <code>generate</code>, links <code>generate</code> to <code>END</code>, and compiles the workflow[span_51](start_span)[span_51](end_span).</li>
+        <li><strong>Lines 27–34:</strong> <code>run</code>: Invokes the compiled workflow with the initial state dictionary[span_52](start_span)[span_52](end_span).</li>
+      </ul>
+    </div>
+
+    <h3>3.5 Streamlit Cloud Web UI (<code>streamlit_app.py</code>)</h3>
+    <pre><code><span class="code-line"><span class="line-num">01</span><span class="keyword">import</span> os</span>
+<span class="code-line"><span class="line-num">02</span><span class="keyword">import</span> streamlit <span class="keyword">as</span> st</span>
+<span class="code-line"><span class="line-num">03</span><span class="keyword">from</span> pypdf <span class="keyword">import</span> PdfReader</span>
+<span class="code-line"><span class="line-num">04</span><span class="keyword">from</span> app.graph.workflow <span class="keyword">import</span> CRAGPipeline</span>
+<span class="code-line"><span class="line-num">05</span><span class="keyword">from</span> app.retrieval.chunking <span class="keyword">import</span> MetadataChunker</span>
+<span class="code-line"><span class="line-num">06</span></span>
+<span class="code-line"><span class="line-num">07</span><span class="keyword">for</span> key, value <span class="keyword">in</span> st.secrets.items():</span>
+<span class="code-line"><span class="line-num">08</span>    os.environ[key] = str(value)</span>
+<span class="code-line"><span class="line-num">09</span></span>
+<span class="code-line"><span class="line-num">10</span>st.set_page_config(page_title=<span class="string">"CRAG AI Assistant"</span>, page_icon=<span class="string">"🔍"</span>, layout=<span class="string">"wide"</span>)</span>
+<span class="code-line"><span class="line-num">11</span></span>
+<span class="code-line"><span class="line-num">12</span><span class="keyword">if</span> <span class="string">"pipeline"</span> <span class="keyword">not in</span> st.session_state:</span>
+<span class="code-line"><span class="line-num">13</span>    st.session_state.chunker = MetadataChunker(chunk_size=<span class="string">128</span>, chunk_overlap=<span class="string">20</span>)</span>
+<span class="code-line"><span class="line-num">14</span>    st.session_state.pipeline = CRAGPipeline()</span>
+<span class="code-line"><span class="line-num">15</span>    st.session_state.messages = []</span>
+<span class="code-line"><span class="line-num">16</span></span>
+<span class="code-line"><span class="line-num">17</span><span class="keyword">with</span> st.sidebar:</span>
+<span class="code-line"><span class="line-num">18</span>    st.title(<span class="string">"📂 Document Ingestion"</span>)</span>
+<span class="code-line"><span class="line-num">19</span>    uploaded_file = st.file_uploader(<span class="string">"Upload PDF file"</span>, type=[<span class="string">"pdf"</span>])</span>
+<span class="code-line"><span class="line-num">20</span>    <span class="keyword">if</span> st.button(<span class="string">"Index PDF"</span>) <span class="keyword">and</span> uploaded_file:</span>
+<span class="code-line"><span class="line-num">21</span>        reader = PdfReader(uploaded_file)</span>
+<span class="code-line"><span class="line-num">22</span>        pdf_text = <span class="string">""</span>.join([page.extract_text() <span class="keyword">or</span> <span class="string">""</span> <span class="keyword">for</span> page <span class="keyword">in</span> reader.pages])</span>
+<span class="code-line"><span class="line-num">23</span>        <span class="keyword">if</span> pdf_text.strip():</span>
+<span class="code-line"><span class="line-num">24</span>            chunks = st.session_state.chunker.split_text(pdf_text, doc_id=uploaded_file.name)</span>
+<span class="code-line"><span class="line-num">25</span>            st.session_state.pipeline.add_documents(chunks)</span>
+<span class="code-line"><span class="line-num">26</span>            st.success(f<span class="string">"Indexed {len(chunks)} chunks!"</span>)</span>
+<span class="code-line"><span class="line-num">27</span></span>
+<span class="code-line"><span class="line-num">28</span><span class="keyword">for</span> msg <span class="keyword">in</span> st.session_state.messages:</span>
+<span class="code-line"><span class="line-num">29</span>    <span class="keyword">with</span> st.chat_message(msg[<span class="string">"role"</span>]):</span>
+<span class="code-line"><span class="line-num">30</span>        st.markdown(msg[<span class="string">"content"</span>])</span>
+<span class="code-line"><span class="line-num">31</span></span>
+<span class="code-line"><span class="line-num">32</span><span class="keyword">if</span> prompt := st.chat_input(<span class="string">"Ask a question..."</span>):</span>
+<span class="code-line"><span class="line-num">33</span>    st.session_state.messages.append({<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: prompt})</span>
+<span class="code-line"><span class="line-num">34</span>    result = st.session_state.pipeline.run(prompt)</span>
+<span class="code-line"><span class="line-num">35</span>    st.session_state.messages.append({</span>
+<span class="code-line"><span class="line-num">36</span>        <span class="string">"role"</span>: <span class="string">"assistant"</span>,</span>
+<span class="code-line"><span class="line-num">37</span>        <span class="string">"content"</span>: result[<span class="string">"generation"</span>],</span>
+<span class="code-line"><span class="line-num">38</span>        <span class="string">"fallback"</span>: result[<span class="string">"web_search_fallback"</span>],</span>
+<span class="code-line"><span class="line-num">39</span>        <span class="string">"sources"</span>: result[<span class="string">"sources"</span>]</span>
+<span class="code-line"><span class="line-num">40</span>    })</span></code></pre>
+
+    <div class="breakdown-box">
+      <ul>
+        <li><strong>Lines 07–08:</strong> Bridges secrets from <code>st.secrets</code> into <code>os.environ</code> so downstream libraries can access API credentials[span_53](start_span)[span_53](end_span).</li>
+        <li><strong>Lines 12–15:</strong> Manages state persistence across Streamlit reruns via <code>st.session_state</code>[span_54](start_span)[span_54](end_span).</li>
+        <li><strong>Lines 17–26:</strong> Provides in-browser PDF upload and extraction via <code>PdfReader</code>, adding resulting chunks to the pipeline[span_55](start_span)[span_55](end_span).</li>
+        <li><strong>Lines 28–30:</strong> Displays conversational history.</li>
+        <li><strong>Lines 32–40:</strong> Handles user input, invokes the pipeline, and records assistant answers along with fallback status and citations.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Enterprise Applications & Operational Value</h2>
+    <div class="card">
+      <h3>Engineering Operations & Field Maintenance</h3>
+      <p>
+        Field technicians can query equipment symptoms across large service manuals. The system returns explicit repair steps with page citations, helping avoid downtime from inaccurate procedures.
+      </p>
+
+      <h3>Corporate Policy & HR Helpdesk</h3>
+      <p>
+        Ingests travel policies and employee handbooks. Inquiries regarding limits, reimbursements, or leave receive grounded answers backed by specific policy clauses.
+      </p>
+
+      <h3>Regulatory & Legal Auditing</h3>
+      <p>
+        Assists compliance officers in validating contracts and disclosures against internal policies and current external regulations via automated web fallback.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

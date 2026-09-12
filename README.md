@@ -3,7 +3,9 @@
 A high-reliability, self-correcting Retrieval-Augmented Generation (CRAG) system designed to eliminate LLM hallucinations. Built with *FastAPI, **LangGraph, hybrid retrieval (Qdrant* dense vectors + *BM25* sparse keyword matching), cross-encoder reranking, and autonomous *Tavily Web Search* fallback.
 
 link: https://crag-two-tier-hybrid.streamlit.app/
-<img width="1879" height="995" alt="Screenshot 2026-09-02 194648" src="https://github.com/user-attachments/assets/d5c7cef8-74b5-4554-b740-76cac7c428be" />
+
+<img width="1862" height="945" alt="Screenshot 2026-09-12 213142" src="https://github.com/user-attachments/assets/586b1510-6e59-4220-947e-4d74fe077ad9" />
+
 
 
 ---

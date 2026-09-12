@@ -24,3 +24,5 @@ tavily-python
 reportlab
 streamlit
 pypdf
+langchain-groq
+groq
